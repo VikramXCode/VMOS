@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import BookingForm from "@/components/BookingForm";
 
 // Navigation Items - Reordered
 const navItems = [
@@ -375,48 +376,12 @@ const HomePage = () => {
 
       {/* ==================== SECTION 3: BOOKING SLOT ==================== */}
       <section id="booking" className="py-8 px-4 bg-gradient-to-b from-transparent via-cyan-500/5 to-transparent">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-6">
           <Calendar className="h-5 w-5 text-cyan-400" />
           <h2 className="text-xl font-bold">Book Your Slot</h2>
         </div>
 
-        <div className="rounded-2xl bg-white/5 border border-white/5 p-4">
-          {/* Console Grid */}
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-3">Available Consoles & Pricing</p>
-          <div className="grid grid-cols-2 gap-2 mb-5">
-            {consoles.map((console, index) => (
-              <div
-                key={index}
-                className="p-3 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3 active:bg-white/10 transition-colors"
-              >
-                <span className="text-xl">{console.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{console.name}</p>
-                  <p className="text-xs text-cyan-400 font-bold">{console.price}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA Buttons */}
-          <div className="space-y-2">
-            <Button
-              onClick={openWhatsApp}
-              className="w-full bg-[#25D366] hover:bg-[#22c55e] text-white font-bold py-5 rounded-xl text-base"
-            >
-              <MessageCircle className="h-5 w-5 mr-2" />
-              Book via WhatsApp
-            </Button>
-            <Button
-              onClick={callNow}
-              variant="outline"
-              className="w-full border-white/20 text-white font-semibold py-5 rounded-xl"
-            >
-              <Phone className="h-5 w-5 mr-2" />
-              Call to Book
-            </Button>
-          </div>
-        </div>
+        <BookingForm />
       </section>
 
       {/* ==================== SECTION 4: OUR SERVICES ==================== */}
