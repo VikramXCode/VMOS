@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, History, CreditCard, Banknote, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBooking } from "@/contexts/BookingContext";
+import { SlotSuggester } from "@/components/ai/SlotSuggester";
+import { GameRecommender } from "@/components/ai/GameRecommender";
 
 const BookingPage = () => {
   const { consoles, getAvailability } = useBooking();
@@ -49,6 +51,14 @@ const BookingPage = () => {
   };
 
   const selectedConsoleMeta = consoles.find((c) => c.id === selectedConsole);
+  const availableSlotLabels = timeSlots.filter((slot) => slot.available).map((slot) => `${slot.start} - ${slot.end}`);
+
+  const handleAiSlotSelect = (slotText: string) => {
+    const matched = timeSlots.find((slot) => `${slot.start} - ${slot.end}` === slotText);
+    if (matched && matched.available) {
+      setSelectedSlot(matched.id);
+    }
+  };
 
   return (
     <Layout>
@@ -155,6 +165,11 @@ const BookingPage = () => {
           <h2 className="font-heading text-lg font-semibold mb-4">
             Select Time Slot
           </h2>
+          <SlotSuggester
+            consoleName={selectedConsoleMeta?.name}
+            availableSlots={availableSlotLabels}
+            onSelect={handleAiSlotSelect}
+          />
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {timeSlots.map((slot) => (
               <button
@@ -213,6 +228,8 @@ const BookingPage = () => {
             </div>
           </div>
         )}
+
+        <GameRecommender />
       </div>
     </Layout>
   );

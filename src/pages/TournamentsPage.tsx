@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Users, Trophy, Calendar } from "lucide-react";
 import tournamentPoster from "@/assets/tournament-poster.jpg";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { TeamBuilder } from "@/components/ai/TeamBuilder";
 
 interface Tournament {
   id: string;
@@ -127,6 +128,8 @@ const TournamentsPage = () => {
             Stay tuned for more tournaments! Follow us for updates.
           </p>
         </div>
+
+        <TeamBuilder />
       </div>
     </Layout>
   );

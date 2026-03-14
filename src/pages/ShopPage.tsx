@@ -2,6 +2,9 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { GameRecommender } from "@/components/ai/GameRecommender";
+import { ProductSearch } from "@/components/ai/ProductSearch";
+import { useMemo, useState } from "react";
 
 interface Product {
   id: string;
@@ -72,6 +75,14 @@ const defaultProducts: Product[] = [
 
 const ShopPage = () => {
   const [products] = useLocalStorage<Product[]>("vmos-products", defaultProducts);
+  const [aiFilteredIds, setAiFilteredIds] = useState<string[] | null>(null);
+  const visibleProducts = useMemo(() => {
+    if (!aiFilteredIds || aiFilteredIds.length === 0) return products;
+    const order = new Map(aiFilteredIds.map((id, idx) => [id, idx]));
+    return products
+      .filter((product) => order.has(product.id))
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+  }, [aiFilteredIds, products]);
 
   return (
     <Layout>
@@ -86,9 +97,12 @@ const ShopPage = () => {
           </p>
         </div>
 
+        <ProductSearch products={products} onApply={setAiFilteredIds} />
+        <GameRecommender />
+
         {/* Products Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {products.map((product) => (
+          {visibleProducts.map((product) => (
             <div
               key={product.id}
               className="glass-card rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-300"
