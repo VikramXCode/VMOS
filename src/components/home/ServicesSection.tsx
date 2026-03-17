@@ -7,7 +7,7 @@ const services = [
     title: "Gaming Sessions",
     description: "PC, PS5, PS4, PS3, PS2 & Xbox",
     color: "from-cyan-500 to-blue-600",
-    price: "₹60/hr",
+    price: "Varies by System",
     glow: "group-hover:shadow-cyan-500/20",
   },
   {
