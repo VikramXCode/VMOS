@@ -3,7 +3,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useBooking } from "@/contexts/BookingContext";
-import { geminiClient, isGeminiConfigured } from "@/lib/gemini";
+import { generateGeminiText, isGeminiConfigured } from "@/lib/gemini";
 import { Input } from "@/components/ui/input";
 
 export const AdminAIInsightsPage = () => {
@@ -41,11 +41,10 @@ export const AdminAIInsightsPage = () => {
     }
     setLoading(true);
     try {
-      const model = geminiClient?.getGenerativeModel({ model: "gemini-1.5-pro" });
       const summary = buildSummary();
       const prompt = `Analyze this VMOS dashboard data and produce concise actionable report with sections: Peak Hours, Revenue Outlook, Underperforming Categories, Marketing Actions. Data: ${JSON.stringify(summary)}`;
-      const result = await model?.generateContent(prompt);
-      setReport(result?.response.text() || "No report generated.");
+      const text = await generateGeminiText(prompt, ["gemini-1.5-pro-latest", "gemini-2.0-flash"]);
+      setReport(text || "No report generated.");
     } catch (error) {
       console.error(error);
       setReport("Failed to generate report right now.");
@@ -62,11 +61,10 @@ export const AdminAIInsightsPage = () => {
     }
     setFollowUpLoading(true);
     try {
-      const model = geminiClient?.getGenerativeModel({ model: "gemini-1.5-flash" });
       const summary = buildSummary();
       const prompt = `You are VMOS admin analyst. Data: ${JSON.stringify(summary)}. Question: ${question}. Give a concise answer with numbers where possible.`;
-      const result = await model?.generateContent(prompt);
-      setFollowUpAnswer(result?.response.text() || "No answer generated.");
+      const text = await generateGeminiText(prompt, ["gemini-2.0-flash", "gemini-1.5-flash-latest"]);
+      setFollowUpAnswer(text || "No answer generated.");
     } catch (error) {
       console.error(error);
       setFollowUpAnswer("Failed to get AI answer.");

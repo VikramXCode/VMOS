@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { geminiClient, isGeminiConfigured } from "@/lib/gemini";
+import { generateGeminiText, isGeminiConfigured } from "@/lib/gemini";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -20,6 +20,18 @@ export const ProductSearch = ({ products, onApply }: ProductSearchProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const extractJsonArray = (raw: string): string[] => {
+    const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    const start = cleaned.indexOf("[");
+    const end = cleaned.lastIndexOf("]");
+    if (start === -1 || end === -1 || end <= start) {
+      return [];
+    }
+
+    const parsed = JSON.parse(cleaned.slice(start, end + 1));
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  };
+
   const searchWithAI = async () => {
     if (!query.trim()) {
       onApply(null);
@@ -32,12 +44,10 @@ export const ProductSearch = ({ products, onApply }: ProductSearchProps) => {
     setLoading(true);
     setError(null);
     try {
-      const model = geminiClient?.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `User query: ${query}. Catalog: ${JSON.stringify(products)}. Return JSON array of matching product IDs sorted by relevance.`;
-      const result = await model?.generateContent(prompt);
-      const text = result?.response.text() ?? "[]";
-      const ids = JSON.parse(text) as string[];
-      onApply(Array.isArray(ids) ? ids : null);
+      const text = await generateGeminiText(prompt, ["gemini-2.0-flash", "gemini-1.5-flash-latest"]);
+      const ids = extractJsonArray(text);
+      onApply(ids.length > 0 ? ids : null);
     } catch (e) {
       console.error(e);
       setError("AI search failed. Try another phrasing.");
