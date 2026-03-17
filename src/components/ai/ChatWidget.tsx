@@ -54,7 +54,7 @@ export const ChatWidget = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-24 md:bottom-4 right-4 z-50">
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button size="lg" className="rounded-full shadow-lg">
