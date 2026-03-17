@@ -75,18 +75,22 @@ export const AdminAIInsightsPage = () => {
 
   return (
     <AdminLayout>
-      <Card>
+      <Card className="rounded-2xl bg-surface-2/90 border-border/60">
         <CardHeader>
           <CardTitle>AI Insights</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-3">
+          <p className="text-sm text-muted-foreground mb-4 text-center">
             Generate automated insights from the last 30 days of booking and sales data.
           </p>
-          <Button onClick={generate} disabled={loading}>
+          <Button onClick={generate} disabled={loading} className="w-full h-11 rounded-xl font-heading">
             {loading ? "Generating..." : "Generate Report"}
           </Button>
-          {report && <div className="mt-4 text-sm whitespace-pre-line">{report}</div>}
+          {report && (
+            <div className="mt-4 text-sm whitespace-pre-line rounded-2xl border border-border/60 bg-background/30 p-3 max-h-72 overflow-y-auto scrollbar-thin">
+              {report}
+            </div>
+          )}
 
           <div className="mt-6 space-y-2">
             <p className="text-sm font-medium">Ask follow-up question</p>
@@ -96,11 +100,11 @@ export const AdminAIInsightsPage = () => {
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Example: which console should we promote next week?"
               />
-              <Button variant="outline" onClick={askFollowUp} disabled={followUpLoading}>
+              <Button variant="outline" onClick={askFollowUp} disabled={followUpLoading} className="rounded-xl">
                 {followUpLoading ? "Asking..." : "Ask AI"}
               </Button>
             </div>
-            {followUpAnswer && <div className="text-sm whitespace-pre-line rounded-md border border-border p-3">{followUpAnswer}</div>}
+            {followUpAnswer && <div className="text-sm whitespace-pre-line rounded-2xl border border-border/60 bg-background/30 p-3">{followUpAnswer}</div>}
           </div>
         </CardContent>
         <CardFooter className="text-xs text-muted-foreground">

@@ -22,14 +22,14 @@ export const AdminCustomersPage = () => {
 
   return (
     <AdminLayout>
-      <Card>
+      <Card className="rounded-2xl bg-surface-2/90 border-border/60">
         <CardHeader>
-          <CardTitle>Customers</CardTitle>
+          <CardTitle className="text-base">Customers</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           {customers.length === 0 && <p className="text-muted-foreground">No customers yet.</p>}
           {customers.map((c) => (
-            <div key={c.phone} className="border border-border/60 rounded-lg p-3 flex items-center justify-between">
+            <div key={c.phone} className="border border-border/60 rounded-2xl p-3 flex items-center justify-between bg-background/30 active:scale-[0.99] transition-transform">
               <div>
                 <p className="font-semibold">{c.name}</p>
                 <p className="text-xs text-muted-foreground">{c.phone}</p>
