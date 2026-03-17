@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateGeminiText, isGeminiConfigured, isGeminiRateLimitError } from "@/lib/gemini";
+import { groqClient, isGroqConfigured } from "@/lib/groq";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -37,24 +37,30 @@ export const ProductSearch = ({ products, onApply }: ProductSearchProps) => {
       onApply(null);
       return;
     }
-    if (!isGeminiConfigured) {
-      setError("Set VITE_GEMINI_API_KEY to enable AI product search.");
+    if (!isGroqConfigured) {
+      setError("Set VITE_GROQ_API_KEY to enable AI product search.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const prompt = `User query: ${query}. Catalog: ${JSON.stringify(products)}. Return JSON array of matching product IDs sorted by relevance.`;
-      const text = await generateGeminiText(prompt, ["gemini-2.0-flash", "gemini-1.5-flash-latest"]);
+      const prompt = `User query: ${query}. Catalog: ${JSON.stringify(products)}. Return only a JSON array of matching product IDs sorted by relevance. No explanation.`;
+      const completion = await groqClient?.chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          { role: "system", content: "You are a strict JSON assistant. Output valid JSON array only." },
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 300,
+      });
+
+      const text = completion?.choices?.[0]?.message?.content ?? "[]";
       const ids = extractJsonArray(text);
       onApply(ids.length > 0 ? ids : null);
     } catch (e) {
       console.error(e);
-      if (isGeminiRateLimitError(e)) {
-        setError("AI search is busy right now. Please try again in a few seconds.");
-      } else {
-        setError("AI search failed. Try another phrasing.");
-      }
+      setError("AI search failed. Try again in a few seconds.");
       onApply(null);
     } finally {
       setLoading(false);
