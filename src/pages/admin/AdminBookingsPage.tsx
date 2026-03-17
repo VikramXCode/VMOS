@@ -8,9 +8,10 @@ import { CalendarCheck2, Search, Plus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { api } from "@/lib/api";
 
 export const AdminBookingsPage = () => {
-  const { bookings, updateBookingStatus, deleteBooking, consoles, getAvailability, addBooking } = useBooking();
+  const { bookings, updateBookingStatus, deleteBooking, consoles, addBooking } = useBooking();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "cancelled">("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -23,10 +24,23 @@ export const AdminBookingsPage = () => {
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [slotId, setSlotId] = useState("");
 
-  const availableSlots = useMemo(() => {
-    if (!consoleId) return [];
-    return getAvailability(date, consoleId).filter((slot) => slot.available);
-  }, [consoleId, date, getAvailability]);
+  const [availableSlots, setAvailableSlots] = useState<Array<{ id: string; start: string; end: string; hour: number; available: boolean }>>([]);
+
+  useEffect(() => {
+    if (!consoleId) return;
+    api.bookings.availability(date, consoleId)
+      .then((data) => {
+        const booked = new Set(data.bookedSlots || []);
+        const slots = [] as Array<{ id: string; start: string; end: string; hour: number; available: boolean }>;
+        for (let hour = 10; hour < 22; hour++) {
+          const start = `${hour.toString().padStart(2, "0")}:00`;
+          const end = `${(hour + 1).toString().padStart(2, "0")}:00`;
+          slots.push({ id: `slot-${hour}`, start, end, hour, available: !booked.has(start) });
+        }
+        setAvailableSlots(slots.filter((slot) => slot.available));
+      })
+      .catch(() => setAvailableSlots([]));
+  }, [date, consoleId]);
 
   useEffect(() => {
     setSlotId(availableSlots[0]?.id ?? "");
@@ -57,11 +71,11 @@ export const AdminBookingsPage = () => {
     return "bg-yellow-500/15 text-yellow-400 border-yellow-500/40 animate-pulse";
   };
 
-  const createBooking = () => {
+  const createBooking = async () => {
     if (!name || !phone || !consoleId || !slotId) return;
     const selected = availableSlots.find((slot) => slot.id === slotId);
     if (!selected) return;
-    addBooking({
+    await addBooking({
       name,
       phone,
       consoleId,

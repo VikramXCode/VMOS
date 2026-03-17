@@ -1,21 +1,40 @@
 import { ShoppingCart, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
-const products = [
-  { name: "GTA V", price: 2499, category: "Game", image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=400&h=400&fit=crop" },
-  { name: "PS5 Controller", price: 5999, category: "Controller", image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop" },
-  { name: "Gaming Headset", price: 3499, category: "Accessory", image: "https://images.unsplash.com/photo-1599669454699-248893623440?w=400&h=400&fit=crop" },
-  { name: "RGB Mouse", price: 1999, category: "Accessory", image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=400&h=400&fit=crop" },
-  { name: "Mechanical KB", price: 4499, category: "Accessory", image: "https://images.unsplash.com/photo-1595225476474-87563907a212?w=400&h=400&fit=crop" },
-  { name: "Xbox Controller", price: 4999, category: "Controller", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=400&h=400&fit=crop" },
-];
+interface ProductPreview {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  image: string;
+}
 
 const openWhatsApp = () => {
   window.open("https://wa.me/917010905241?text=Hi! I want to enquire about a product.", "_blank");
 };
 
 export const ShopPreviewSection = () => {
+  const [products, setProducts] = useState<ProductPreview[]>([]);
+
+  useEffect(() => {
+    api.products.list()
+      .then((items) => {
+        setProducts(
+          items.slice(0, 6).map((item: any) => ({
+            id: item._id || item.id,
+            name: item.name,
+            price: Number(item.price) || 0,
+            category: item.category,
+            image: item.image,
+          }))
+        );
+      })
+      .catch(() => setProducts([]));
+  }, []);
+
   return (
     <section id="shop" className="py-10 px-4 bg-gradient-to-b from-transparent via-secondary/5 to-transparent">
       <div className="container mx-auto">
@@ -34,9 +53,9 @@ export const ShopPreviewSection = () => {
 
         {/* Horizontal Scroll Products */}
         <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide snap-x snap-mandatory">
-          {products.map((product, index) => (
+          {products.map((product) => (
             <div
-              key={index}
+              key={product.id}
               className="flex-shrink-0 w-40 rounded-2xl bg-surface-2 border border-border/50 overflow-hidden hover:border-primary/30 transition-all duration-300 snap-start hover-lift"
             >
               <div className="aspect-square relative overflow-hidden">

@@ -59,10 +59,10 @@ export default function BookingForm() {
     setFormData({ ...formData, slots: newSlots, amount: totalAmount });
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!formData.name || !formData.phone || !formData.console || formData.slots.length === 0) return;
     const slots = timeSlots.filter((s) => formData.slots.includes(s.id)).map((s) => ({ ...s, available: false }));
-    const booking = addBooking({
+    const booking = await addBooking({
       name: formData.name,
       phone: formData.phone,
       consoleId: formData.console,

@@ -6,26 +6,29 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import App from "./App.tsx";
 import "./index.css";
-import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BookingProvider } from "@/contexts/BookingContext";
 import { AdminProvider } from "@/contexts/AdminContext";
+import { CartProvider } from "@/contexts/CartContext";
+import { PublicContentProvider } from "@/contexts/PublicContentContext";
 
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
 	<BrowserRouter>
 		<QueryClientProvider client={queryClient}>
-			<ThemeProvider>
+			<PublicContentProvider>
 				<BookingProvider>
-					<AdminProvider>
-						<TooltipProvider>
-							<App />
-							<Toaster />
-							<Sonner />
-						</TooltipProvider>
-					</AdminProvider>
+					<CartProvider>
+						<AdminProvider>
+							<TooltipProvider>
+								<App />
+								<Toaster />
+								<Sonner />
+							</TooltipProvider>
+						</AdminProvider>
+					</CartProvider>
 				</BookingProvider>
-			</ThemeProvider>
+			</PublicContentProvider>
 		</QueryClientProvider>
 	</BrowserRouter>
 );

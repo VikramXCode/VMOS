@@ -121,6 +121,16 @@ export const api = {
       request<void>(`/slots/overrides/${id}`, { method: "DELETE", headers: headers(true) }),
   },
 
+  // ─── Consoles ──────────────────────────────
+  consoles: {
+    list: () => request<any[]>("/consoles"),
+  },
+
+  // ─── Public Content ────────────────────────
+  content: {
+    get: () => request<any>("/content/public"),
+  },
+
   // ─── Health ────────────────────────────────
   health: () => request<{ status: string }>("/health"),
 };

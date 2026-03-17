@@ -1,6 +1,6 @@
-import { createContext, useContext, useMemo } from "react";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { addDays, formatISO, subDays } from "date-fns";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { formatISO } from "date-fns";
+import { api } from "@/lib/api";
 
 export type SlotStatus = "available" | "booked" | "unavailable";
 
@@ -54,7 +54,7 @@ export type AdminSlotState = TimeSlotData & {
 interface BookingContextValue {
   bookings: Booking[];
   consoles: ConsoleType[];
-  addBooking: (input: BookingInput) => Booking;
+  addBooking: (input: BookingInput) => Promise<Booking>;
   updateBookingStatus: (id: string, status: Booking["status"]) => void;
   deleteBooking: (id: string) => void;
   getAvailability: (date: string, consoleId: string) => TimeSlotData[];
@@ -65,16 +65,6 @@ interface BookingContextValue {
 }
 
 const BookingContext = createContext<BookingContextValue | undefined>(undefined);
-
-const CONSOLES: ConsoleType[] = [
-  { id: "ps5", name: "PlayStation 5", price: 100, icon: "🎮" },
-  { id: "ps4", name: "PlayStation 4", price: 80, icon: "🎮" },
-  { id: "xbox", name: "Xbox Series X", price: 100, icon: "🎮" },
-  { id: "pc-high", name: "Gaming PC (High-end)", price: 80, icon: "💻" },
-  { id: "pc-mid", name: "Gaming PC (Mid-range)", price: 60, icon: "💻" },
-  { id: "switch", name: "Nintendo Switch", price: 60, icon: "🕹️" },
-  { id: "vr", name: "VR Gaming", price: 150, icon: "🥽" },
-];
 
 const generateSlots = () => {
   const slots: TimeSlotData[] = [];
@@ -93,69 +83,84 @@ const generateSlots = () => {
   return slots;
 };
 
-const seedBookings = (): Booking[] => {
-  const today = new Date();
-  const consoles = CONSOLES;
-  const seed: Booking[] = [];
 
-  for (let i = 0; i < 10; i++) {
-    const date = formatISO(subDays(today, Math.floor(Math.random() * 5)), { representation: "date" });
-    const console = consoles[Math.floor(Math.random() * consoles.length)];
-    const slotHour = 12 + Math.floor(Math.random() * 6);
-    const slot: TimeSlotData = {
-      id: `slot-${slotHour}`,
-      start: `${slotHour.toString().padStart(2, "0")}:00`,
-      end: `${(slotHour + 1).toString().padStart(2, "0")}:00`,
-      hour: slotHour,
+const mapConsole = (item: any): ConsoleType => ({
+  id: item.key || item.id,
+  name: item.name,
+  price: Number(item.price) || 0,
+  icon: item.icon || "🎮",
+});
+
+const mapBooking = (item: any): Booking => {
+  const hour = Number(String(item.startTime || "10:00").split(":")[0]) || 10;
+  return {
+    id: item._id || item.id,
+    name: item.customerName,
+    phone: item.customerPhone,
+    consoleId: item.consoleId,
+    consoleName: item.consoleName,
+    date: item.date,
+    slots: [{
+      id: `slot-${hour}`,
+      start: item.startTime,
+      end: item.endTime,
+      hour,
       available: false,
-    };
-
-    seed.push({
-      id: `seed-${i}`,
-      name: `Guest ${i + 1}`,
-      phone: `99999${(10000 + i).toString().slice(-5)}`,
-      consoleId: console.id,
-      consoleName: console.name,
-      date,
-      slots: [slot],
-      amount: console.price,
-      status: "confirmed",
-      createdAt: formatISO(addDays(today, -i)),
-    });
-  }
-
-  return seed;
+    }],
+    amount: Number(item.price) || 0,
+    status: item.status,
+    createdAt: item.createdAt || formatISO(new Date()),
+  };
 };
 
 export const BookingProvider = ({ children }: { children: React.ReactNode }) => {
-  const [bookings, setBookings] = useLocalStorage<Booking[]>("vmos-bookings", seedBookings());
-  const [slotOverrides, setSlotOverrides] = useLocalStorage<SlotOverride[]>("vmos-slot-overrides", []);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [consoles, setConsoles] = useState<ConsoleType[]>([]);
+  const [slotOverrides, setSlotOverrides] = useState<SlotOverride[]>([]);
 
-  const addBooking = (input: BookingInput): Booking => {
-    const consoleMeta = CONSOLES.find((c) => c.id === input.consoleId);
-    const amount = input.slots.length * (consoleMeta?.price || 0);
-    const booking: Booking = {
-      id: crypto.randomUUID(),
-      name: input.name,
-      phone: input.phone,
+  useEffect(() => {
+    api.consoles.list().then((items) => setConsoles(items.map(mapConsole))).catch(() => setConsoles([]));
+  }, []);
+
+  useEffect(() => {
+    const token = window.localStorage.getItem("vmos-admin-token");
+    if (!token) {
+      setBookings([]);
+      return;
+    }
+    api.bookings.list().then((items) => setBookings(items.map(mapBooking))).catch(() => setBookings([]));
+  }, []);
+
+  const addBooking = async (input: BookingInput): Promise<Booking> => {
+    const consoleMeta = consoles.find((c) => c.id === input.consoleId);
+    const firstSlot = input.slots[0];
+    const payload = {
+      customerName: input.name,
+      customerPhone: input.phone,
       consoleId: input.consoleId,
       consoleName: consoleMeta?.name || input.consoleId,
       date: input.date,
-      slots: input.slots,
-      amount,
-      status: "pending",
-      createdAt: formatISO(new Date()),
+      startTime: firstSlot?.start,
+      endTime: firstSlot?.end,
+      price: consoleMeta?.price || 0,
     };
-    setBookings((prev) => [booking, ...prev]);
-    return booking;
+    const created = await api.bookings.create(payload);
+    const mapped = mapBooking(created);
+    setBookings((prev) => [mapped, ...prev]);
+    return mapped;
   };
 
   const updateBookingStatus = (id: string, status: Booking["status"]) => {
-    setBookings((prev) => prev.map((b) => (b.id === id ? { ...b, status } : b)));
+    api.bookings.update(id, { status }).then((updated) => {
+      const mapped = mapBooking(updated);
+      setBookings((prev) => prev.map((b) => (b.id === id ? mapped : b)));
+    }).catch(() => undefined);
   };
 
   const deleteBooking = (id: string) => {
-    setBookings((prev) => prev.filter((b) => b.id !== id));
+    api.bookings.delete(id)
+      .then(() => setBookings((prev) => prev.filter((b) => b.id !== id)))
+      .catch(() => undefined);
   };
 
   const isBlocked = (date: string, consoleId: string, slotId: string) => {
@@ -237,7 +242,7 @@ export const BookingProvider = ({ children }: { children: React.ReactNode }) => 
   const value = useMemo(
     () => ({
       bookings,
-      consoles: CONSOLES,
+      consoles,
       addBooking,
       updateBookingStatus,
       deleteBooking,
@@ -247,7 +252,7 @@ export const BookingProvider = ({ children }: { children: React.ReactNode }) => 
       blockAllSlots,
       unblockAllSlots,
     }),
-    [bookings, slotOverrides]
+    [bookings, slotOverrides, consoles]
   );
 
   return <BookingContext.Provider value={value}>{children}</BookingContext.Provider>;

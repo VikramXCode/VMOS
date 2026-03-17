@@ -4,6 +4,8 @@ import { Product } from "./models/Product";
 import { Tournament } from "./models/Tournament";
 import { LeaderboardEntry } from "./models/LeaderboardEntry";
 import { Admin } from "./models/Admin";
+import { ConsoleModel } from "./models/Console";
+import { SiteContent } from "./models/SiteContent";
 
 dotenv.config();
 
@@ -38,6 +40,52 @@ const leaderboard = [
   { name: "Sneha T.", hours: 28, game: "Apex Legends", score: 1280, wins: 7, streak: 0, avatar: "🏹" },
 ];
 
+const consoles = [
+  { key: "ps5", name: "PlayStation 5", price: 100, icon: "🎮", order: 1 },
+  { key: "ps4", name: "PlayStation 4", price: 80, icon: "🎮", order: 2 },
+  { key: "xbox", name: "Xbox Series X", price: 100, icon: "🎮", order: 3 },
+  { key: "pc-high", name: "Gaming PC (High-end)", price: 80, icon: "💻", order: 4 },
+  { key: "pc-mid", name: "Gaming PC (Mid-range)", price: 60, icon: "💻", order: 5 },
+  { key: "switch", name: "Nintendo Switch", price: 60, icon: "🕹️", order: 6 },
+  { key: "vr", name: "VR Gaming", price: 150, icon: "🥽", order: 7 },
+];
+
+const siteContent = {
+  heroImages: [
+    "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop",
+    "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=800&h=600&fit=crop",
+  ],
+  services: [
+    { icon: "Gamepad2", title: "Gaming Sessions", description: "PC, PS5, PS4, PS3, PS2 & Xbox", price: "Rates Vary", color: "from-cyan-500 to-blue-600", glow: "group-hover:shadow-cyan-500/20" },
+    { icon: "ShoppingCart", title: "Game Shop", description: "Games, consoles & accessories", price: "Best Prices", color: "from-purple-500 to-pink-600", glow: "group-hover:shadow-purple-500/20" },
+    { icon: "Trophy", title: "Tournaments", description: "Weekly competitions & prizes", price: "₹200 Entry", color: "from-yellow-500 to-orange-600", glow: "group-hover:shadow-yellow-500/20" },
+    { icon: "Wrench", title: "Repairs", description: "Console & controller service", price: "Quick Fix", color: "from-green-500 to-emerald-600", glow: "group-hover:shadow-green-500/20" },
+  ],
+  location: {
+    mapEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d978.8326111981042!2d77.3264557353086!3d11.088731308428162!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba9077441abbf25%3A0x1e421b4305ebe100!2sVMOS%20Game%20Station!5e0!3m2!1sen!2sin!4v1769011146519!5m2!1sen!2sin",
+    address: "5/1, 1st St, Sellam Nagar, Parapalayam, Pirivu, Tiruppur, Tamil Nadu 641604",
+    directionsUrl: "https://www.google.com/maps/dir/?api=1&destination=VMOS+Game+Station",
+  },
+  contact: {
+    phone: "+917010905241",
+    email: "vmtech.cool@gmail.com",
+    whatsapp: "+917010905241",
+    hours: "Daily: 10 AM - 11 PM",
+    instagram: "",
+    facebook: "",
+  },
+  gallery: [
+    { url: "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=900&h=600&fit=crop", category: "arena", title: "Main Arena", tall: true },
+    { url: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=900&h=600&fit=crop", category: "setup", title: "Console Zone", tall: false },
+    { url: "https://images.unsplash.com/photo-1523968044756-39c9c6ef1aab?w=900&h=600&fit=crop", category: "tournament", title: "Tournament Night", tall: true },
+    { url: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=900&h=600&fit=crop", category: "setup", title: "PC Bay", tall: false },
+    { url: "https://images.unsplash.com/photo-1545239351-1141bd82e8a6?w=900&h=600&fit=crop", category: "arena", title: "Neon Lounge", tall: false },
+    { url: "https://images.unsplash.com/photo-1546443046-ed1ce6ffd1ab?w=900&h=600&fit=crop", category: "tournament", title: "Winners", tall: false },
+  ],
+};
+
 async function seed() {
   try {
     await mongoose.connect(MONGODB_URI);
@@ -47,6 +95,8 @@ async function seed() {
     await Product.deleteMany({});
     await Tournament.deleteMany({});
     await LeaderboardEntry.deleteMany({});
+    await ConsoleModel.deleteMany({});
+    await SiteContent.deleteMany({});
     console.log("🗑️  Cleared existing data");
 
     // Seed data
@@ -58,6 +108,12 @@ async function seed() {
 
     await LeaderboardEntry.insertMany(leaderboard);
     console.log(`🎮 Seeded ${leaderboard.length} leaderboard entries`);
+
+    await ConsoleModel.insertMany(consoles);
+    console.log(`🕹️ Seeded ${consoles.length} consoles`);
+
+    await SiteContent.create(siteContent);
+    console.log("🧩 Seeded site content");
 
     // Create default admin if none exists
     const adminCount = await Admin.countDocuments();

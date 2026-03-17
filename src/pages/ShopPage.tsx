@@ -1,10 +1,12 @@
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart } from "lucide-react";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { GameRecommender } from "@/components/ai/GameRecommender";
+import { ShoppingCart, Plus, Check, MessageCircle, Search, X, Filter } from "lucide-react";
 import { ProductSearch } from "@/components/ai/ProductSearch";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useCart } from "@/contexts/CartContext";
+import { CartDrawer } from "@/components/shop/CartDrawer";
+import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 interface Product {
   id: string;
@@ -14,141 +16,228 @@ interface Product {
   category: string;
 }
 
-const defaultProducts: Product[] = [
-  {
-    id: "1",
-    name: "GTA V",
-    price: 2499,
-    image: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=400&h=400&fit=crop",
-    category: "Games",
-  },
-  {
-    id: "2",
-    name: "Red Dead Redemption 2",
-    price: 2999,
-    image: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&h=400&fit=crop",
-    category: "Games",
-  },
-  {
-    id: "3",
-    name: "PS5 DualSense Controller",
-    price: 5999,
-    image: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop",
-    category: "Accessories",
-  },
-  {
-    id: "4",
-    name: "Xbox Wireless Controller",
-    price: 4999,
-    image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=400&h=400&fit=crop",
-    category: "Accessories",
-  },
-  {
-    id: "5",
-    name: "Gaming Headset Pro",
-    price: 3499,
-    image: "https://images.unsplash.com/photo-1599669454699-248893623440?w=400&h=400&fit=crop",
-    category: "Accessories",
-  },
-  {
-    id: "6",
-    name: "RGB Gaming Mouse",
-    price: 1999,
-    image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=400&h=400&fit=crop",
-    category: "Accessories",
-  },
-  {
-    id: "7",
-    name: "Mechanical Keyboard",
-    price: 4499,
-    image: "https://images.unsplash.com/photo-1595225476474-87563907a212?w=400&h=400&fit=crop",
-    category: "Accessories",
-  },
-  {
-    id: "8",
-    name: "Gaming Chair",
-    price: 15999,
-    image: "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=400&h=400&fit=crop",
-    category: "Furniture",
-  },
-];
-
 const ShopPage = () => {
-  const [products] = useLocalStorage<Product[]>("vmos-products", defaultProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [aiFilteredIds, setAiFilteredIds] = useState<string[] | null>(null);
-  const visibleProducts = useMemo(() => {
-    if (!aiFilteredIds || aiFilteredIds.length === 0) return products;
-    const order = new Map(aiFilteredIds.map((id, idx) => [id, idx]));
-    return products
-      .filter((product) => order.has(product.id))
-      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
-  }, [aiFilteredIds, products]);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const { addItem, isInCart, totalItems } = useCart();
+
+  // Fetch products from API
+  useEffect(() => {
+    api.products.list()
+      .then((data) => {
+        const mapped = data.map((p: any) => ({
+          id: p._id || p.id,
+          name: p.name,
+          price: p.price,
+          image: p.image,
+          category: p.category,
+        }));
+        setProducts(mapped);
+      })
+      .catch(() => setProducts([]));
+  }, []);
+
+  const categories = useMemo(() => ["All", ...Array.from(new Set(products.map((item) => item.category).filter(Boolean)))], [products]);
+
+  const filteredProducts = useMemo(() => {
+    let result = products;
+
+    // AI filter
+    if (aiFilteredIds && aiFilteredIds.length > 0) {
+      const order = new Map(aiFilteredIds.map((id, idx) => [id, idx]));
+      result = result
+        .filter((p) => order.has(p.id))
+        .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    }
+
+    // Category filter
+    if (selectedCategory !== "All") {
+      result = result.filter((p) => p.category === selectedCategory);
+    }
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+      );
+    }
+
+    return result;
+  }, [aiFilteredIds, products, selectedCategory, searchQuery]);
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl md:text-3xl font-bold">
-            Gaming <span className="text-primary">Shop</span>
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Games, consoles & accessories
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold">
+              Gaming <span className="text-gradient">Shop</span>
+            </h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Games, consoles & accessories
+            </p>
+          </div>
+
+          {/* Cart Button */}
+          <Button
+            onClick={() => setIsCartOpen(true)}
+            variant="outline"
+            className="relative border-primary/30 hover:bg-primary/10 font-heading"
+          >
+            <ShoppingCart className="h-5 w-5 mr-2" />
+            Cart
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-primary-foreground text-xs font-mono font-bold flex items-center justify-center rounded-full animate-pulse-neon">
+                {totalItems}
+              </span>
+            )}
+          </Button>
         </div>
 
-        <ProductSearch products={products} onApply={setAiFilteredIds} />
-        <GameRecommender />
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {visibleProducts.map((product) => (
-            <div
-              key={product.id}
-              className="glass-card rounded-xl overflow-hidden group hover:border-primary/50 transition-all duration-300"
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-surface-2 border border-border/50 rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-body placeholder:text-muted-foreground/50"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              {/* Product Image */}
-              <div className="aspect-square relative overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
-                <span className="absolute top-2 left-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded-md font-medium">
-                  {product.category}
-                </span>
-              </div>
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
 
-              {/* Product Info */}
-              <div className="p-3">
-                <h3 className="font-medium text-sm mb-1 line-clamp-2">
-                  {product.name}
-                </h3>
-                <p className="text-primary font-heading font-bold">
-                  ₹{product.price.toLocaleString()}
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-3"
-                >
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  Add to Cart
-                </Button>
-              </div>
-            </div>
+        {/* Category Filters */}
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={cn(
+                "flex-shrink-0 px-4 py-2 rounded-full text-sm font-heading font-semibold transition-all duration-200",
+                selectedCategory === cat
+                  ? "bg-primary text-primary-foreground neon-glow"
+                  : "bg-surface-2 text-muted-foreground hover:text-foreground hover:bg-surface-3 border border-border/50"
+              )}
+            >
+              {cat}
+            </button>
           ))}
         </div>
 
-        {/* Coming Soon Notice */}
-        <div className="glass-card rounded-xl p-6 mt-8 text-center">
-          <p className="text-muted-foreground">
-            🛒 Full e-commerce functionality coming soon! <br />
-            <span className="text-sm">Visit our store or call us to place orders.</span>
+        {/* AI Search */}
+        <ProductSearch products={products} onApply={setAiFilteredIds} />
+
+        {/* Products Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+          {filteredProducts.map((product, index) => {
+            const inCart = isInCart(product.id);
+            return (
+              <div
+                key={product.id}
+                className="rounded-2xl bg-surface-2 border border-border/50 overflow-hidden group hover:border-primary/30 transition-all duration-300 hover-lift animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                {/* Product Image */}
+                <div className="aspect-square relative overflow-hidden">
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
+                  <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] px-2.5 py-1 rounded-full font-heading font-semibold uppercase tracking-wider">
+                    {product.category}
+                  </span>
+                </div>
+
+                {/* Product Info */}
+                <div className="p-3">
+                  <h3 className="font-heading font-semibold text-sm mb-1 line-clamp-2">
+                    {product.name}
+                  </h3>
+                  <p className="text-primary font-mono font-bold mb-3">
+                    ₹{product.price.toLocaleString()}
+                  </p>
+                  <Button
+                    onClick={() =>
+                      addItem({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        image: product.image,
+                        category: product.category,
+                      })
+                    }
+                    variant={inCart ? "default" : "outline"}
+                    size="sm"
+                    className={cn(
+                      "w-full font-heading font-semibold transition-all duration-200",
+                      inCart
+                        ? "bg-primary/20 text-primary border-primary/30 hover:bg-primary/30"
+                        : "hover:bg-primary/10 hover:border-primary/30"
+                    )}
+                  >
+                    {inCart ? (
+                      <>
+                        <Check className="h-4 w-4 mr-1" />
+                        Added
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add to Cart
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Empty State */}
+        {filteredProducts.length === 0 && (
+          <div className="text-center py-20">
+            <Filter className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground font-heading font-semibold">No products found</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Try adjusting your filters</p>
+          </div>
+        )}
+
+        {/* WhatsApp CTA */}
+        <div className="rounded-2xl bg-gradient-to-r from-[#25D366]/10 to-[#128C7E]/10 border border-[#25D366]/20 p-6 mt-8 text-center">
+          <MessageCircle className="h-8 w-8 text-[#25D366] mx-auto mb-3" />
+          <p className="font-heading font-bold text-lg mb-1">Can't find what you need?</p>
+          <p className="text-muted-foreground text-sm mb-4">
+            Message us on WhatsApp for custom orders and bulk pricing
           </p>
+          <Button
+            onClick={() => window.open("https://wa.me/917010905241?text=Hi! I have a product enquiry.", "_blank")}
+            className="bg-[#25D366] hover:bg-[#22c55e] text-white font-heading font-bold px-6"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Chat with Us
+          </Button>
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </Layout>
   );
 };

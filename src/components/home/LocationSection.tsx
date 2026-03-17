@@ -1,59 +1,74 @@
-import { MapPin, ExternalLink, Navigation } from "lucide-react";
+import { MapPin, Navigation, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { usePublicContent } from "@/contexts/PublicContentContext";
 
 export const LocationSection = () => {
-  const mapUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d978.8326111981042!2d77.3264557353086!3d11.088731308428162!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ba9077441abbf25%3A0x1e421b4305ebe100!2sVMOS%20Game%20Station!5e0!3m2!1sen!2sin!4v1769011146519!5m2!1sen!2sin";
-  const directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=VMOS+Game+Station";
   const [mapKey, setMapKey] = useState(0);
+  const { content } = usePublicContent();
+  const mapEmbedUrl = content.location?.mapEmbedUrl || "";
+  const address = content.location?.address || "Address unavailable";
+  const directionsUrl = content.location?.directionsUrl || "https://www.google.com/maps";
 
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
-      {/* Map */}
-      <div className="aspect-video w-full">
-        <iframe
-          key={mapKey}
-          src={mapUrl}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          title="VMOS Game Station Location"
-        />
-      </div>
+    <section id="location" className="py-10 px-4">
+      <div className="container mx-auto">
+        <div className="flex items-center gap-2 mb-6">
+          <MapPin className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-heading font-bold">Our Location</h2>
+        </div>
 
-      {/* Address & Buttons */}
-      <div className="p-4">
-        <div className="flex items-start gap-3 mb-4">
-          <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-          <div>
-            <h3 className="font-heading text-sm font-semibold mb-1">Our Location</h3>
-            <p className="text-sm text-muted-foreground">
-              5/1, 1st St, Sellam Nagar, Parapalayam,<br />
-              Pirivu, Tiruppur, Andipalayam,<br />
-              Tamil Nadu 641604
-            </p>
+        <div className="rounded-2xl overflow-hidden bg-surface-2 border border-border/50">
+          {/* Map */}
+          <div className="aspect-[4/3] md:aspect-video relative" style={{ touchAction: 'auto' }}>
+            <iframe
+              key={mapKey}
+              src={mapEmbedUrl}
+              className="absolute inset-0 w-full h-full"
+              style={{ border: 0, pointerEvents: 'auto', touchAction: 'auto' }}
+              allow="geolocation"
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="VMOS Game Station Location"
+            />
+          </div>
+
+          {/* Address Card */}
+          <div className="p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <MapPin className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground mb-0.5 font-heading uppercase tracking-wider">Address</p>
+                <p className="text-sm font-medium leading-relaxed">
+                  {address}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                onClick={() => window.open(directionsUrl, "_blank")}
+                className="bg-gradient-to-r from-primary to-blue-600 text-primary-foreground font-heading font-semibold rounded-xl py-5"
+              >
+                <Navigation className="h-4 w-4 mr-2" />
+                Directions
+              </Button>
+              <Button
+                onClick={() => setMapKey(prev => prev + 1)}
+                variant="outline"
+                className="border-border text-foreground font-heading font-semibold rounded-xl py-5 hover:bg-surface-3"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Recenter
+              </Button>
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            onClick={() => window.open(directionsUrl, "_blank")}
-          >
-            <Navigation className="h-4 w-4 mr-2" />
-            Directions
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setMapKey(prev => prev + 1)}
-          >
-            <ExternalLink className="h-4 w-4 mr-2" />
-            Recenter
-          </Button>
-        </div>
       </div>
-    </div>
+    </section>
   );
 };

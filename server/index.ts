@@ -8,6 +8,8 @@ import { tournamentRoutes } from "./routes/tournaments";
 import { leaderboardRoutes } from "./routes/leaderboard";
 import { adminRoutes } from "./routes/admin";
 import { slotRoutes } from "./routes/slots";
+import { consoleRoutes } from "./routes/consoles";
+import { contentRoutes } from "./routes/content";
 
 dotenv.config();
 
@@ -26,6 +28,8 @@ app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/slots", slotRoutes);
+app.use("/api/consoles", consoleRoutes);
+app.use("/api/content", contentRoutes);
 
 // Health check
 app.get("/api/health", (_req, res) => {

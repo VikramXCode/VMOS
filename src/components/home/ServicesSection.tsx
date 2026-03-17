@@ -1,42 +1,17 @@
 import { Gamepad2, ShoppingCart, Trophy, Wrench, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePublicContent } from "@/contexts/PublicContentContext";
 
-const services = [
-  {
-    icon: Gamepad2,
-    title: "Gaming Sessions",
-    description: "PC, PS5, PS4, PS3, PS2 & Xbox",
-    color: "from-cyan-500 to-blue-600",
-    price: "Rates Vary",
-    glow: "group-hover:shadow-cyan-500/20",
-  },
-  {
-    icon: ShoppingCart,
-    title: "Game Shop",
-    description: "Games, consoles & accessories",
-    color: "from-purple-500 to-pink-600",
-    price: "Best Prices",
-    glow: "group-hover:shadow-purple-500/20",
-  },
-  {
-    icon: Trophy,
-    title: "Tournaments",
-    description: "Weekly competitions & prizes",
-    color: "from-yellow-500 to-orange-600",
-    price: "₹200 Entry",
-    glow: "group-hover:shadow-yellow-500/20",
-  },
-  {
-    icon: Wrench,
-    title: "Repairs",
-    description: "Console & controller service",
-    color: "from-green-500 to-emerald-600",
-    price: "Quick Fix",
-    glow: "group-hover:shadow-green-500/20",
-  },
-];
+const iconMap = {
+  Gamepad2,
+  ShoppingCart,
+  Trophy,
+  Wrench,
+} as const;
 
 export const ServicesSection = () => {
+  const { content } = usePublicContent();
+
   return (
     <section id="services" className="py-10 px-4">
       <div className="container mx-auto">
@@ -46,7 +21,9 @@ export const ServicesSection = () => {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {services.map((service, index) => (
+          {content.services.map((service, index) => {
+            const Icon = iconMap[service.icon as keyof typeof iconMap] || Gamepad2;
+            return (
             <div
               key={index}
               className={cn(
@@ -61,7 +38,7 @@ export const ServicesSection = () => {
                     service.glow
                   )}
                 >
-                  <service.icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <h3 className="font-heading font-semibold text-[13px] sm:text-sm leading-snug mb-1">{service.title}</h3>
                 <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{service.description}</p>
@@ -70,7 +47,8 @@ export const ServicesSection = () => {
                 {service.price}
               </span>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
     </section>

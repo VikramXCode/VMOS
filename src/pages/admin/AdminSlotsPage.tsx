@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -6,26 +6,95 @@ import { Button } from "@/components/ui/button";
 import { useBooking } from "@/contexts/BookingContext";
 import { Input } from "@/components/ui/input";
 import { CalendarDays, Gamepad2 } from "lucide-react";
+import { api } from "@/lib/api";
+
+type SlotState = {
+  id: string;
+  start: string;
+  end: string;
+  state: "available" | "blocked" | "booked";
+};
+
+const buildSlots = (bookedSlots: string[], blockedStartTimes: string[], blockedAllDay: boolean): SlotState[] => {
+  const booked = new Set(bookedSlots);
+  const blocked = new Set(blockedStartTimes);
+  const slots: SlotState[] = [];
+  for (let hour = 10; hour < 22; hour++) {
+    const start = `${hour.toString().padStart(2, "0")}:00`;
+    const end = `${(hour + 1).toString().padStart(2, "0")}:00`;
+    let state: SlotState["state"] = "available";
+    if (booked.has(start)) state = "booked";
+    else if (blockedAllDay || blocked.has(start)) state = "blocked";
+    slots.push({ id: `slot-${hour}`, start, end, state });
+  }
+  return slots;
+};
 
 export const AdminSlotsPage = () => {
-  const { consoles, getAdminSlotStates, toggleSlotBlocked, blockAllSlots, unblockAllSlots } = useBooking();
+  const { consoles } = useBooking();
   const [consoleId, setConsoleId] = useState(consoles[0]?.id ?? "");
   const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkSelected, setBulkSelected] = useState<string[]>([]);
+  const [bookedSlots, setBookedSlots] = useState<string[]>([]);
+  const [overrides, setOverrides] = useState<any[]>([]);
   const holdTimerRef = useRef<number | null>(null);
 
-  const slots = consoleId ? getAdminSlotStates(date, consoleId) : [];
+  const blockedStartTimes = useMemo(() => overrides.map((o) => o.startTime).filter(Boolean), [overrides]);
+  const blockedAllDay = useMemo(() => overrides.some((o) => !o.startTime), [overrides]);
+  const slots = useMemo(() => buildSlots(bookedSlots, blockedStartTimes, blockedAllDay), [bookedSlots, blockedStartTimes, blockedAllDay]);
+
+  const loadData = () => {
+    if (!consoleId) return;
+    Promise.all([
+      api.bookings.availability(date, consoleId),
+      api.slots.overrides(date, consoleId),
+    ])
+      .then(([availability, overridesList]) => {
+        setBookedSlots(availability.bookedSlots || []);
+        setOverrides(overridesList || []);
+      })
+      .catch(() => {
+        setBookedSlots([]);
+        setOverrides([]);
+      });
+  };
+
+  useEffect(() => {
+    if (consoles.length > 0 && !consoleId) setConsoleId(consoles[0].id);
+  }, [consoles, consoleId]);
+
+  useEffect(() => {
+    loadData();
+  }, [date, consoleId]);
+
+  const toggleSingleSlot = async (startTime: string, state: SlotState["state"]) => {
+    if (!consoleId || state === "booked") return;
+    const existing = overrides.find((o) => o.startTime === startTime);
+    if (existing) {
+      await api.slots.deleteOverride(existing._id || existing.id);
+    } else {
+      await api.slots.createOverride({ consoleId, date, startTime, blocked: true });
+    }
+    loadData();
+  };
 
   const applyBulk = (nextState: "block" | "unblock") => {
-    bulkSelected.forEach((id) => {
+    Promise.all(bulkSelected.map(async (id) => {
       const slot = slots.find((s) => s.id === id);
       if (!slot || slot.state === "booked") return;
-      if (nextState === "block" && slot.state === "available") toggleSlotBlocked(date, consoleId, id);
-      if (nextState === "unblock" && slot.state === "blocked") toggleSlotBlocked(date, consoleId, id);
+      if (nextState === "block" && slot.state === "available") {
+        await api.slots.createOverride({ consoleId, date, startTime: slot.start, blocked: true });
+      }
+      if (nextState === "unblock" && slot.state === "blocked") {
+        const existing = overrides.find((o) => o.startTime === slot.start);
+        if (existing) await api.slots.deleteOverride(existing._id || existing.id);
+      }
+    })).finally(() => {
+      setBulkSelected([]);
+      setBulkMode(false);
+      loadData();
     });
-    setBulkSelected([]);
-    setBulkMode(false);
   };
 
   return (
@@ -59,10 +128,24 @@ export const AdminSlotsPage = () => {
               onChange={(e) => setDate(e.target.value)}
               className="w-full xl:w-52 h-10 rounded-xl"
             />
-            <Button variant="outline" className="rounded-xl h-10" onClick={() => blockAllSlots(date, consoleId)}>
+            <Button
+              variant="outline"
+              className="rounded-xl h-10"
+              onClick={() => {
+                if (!consoleId) return;
+                api.slots.createOverride({ consoleId, date, blocked: true }).then(loadData);
+              }}
+            >
               Block full day
             </Button>
-            <Button variant="secondary" className="rounded-xl h-10" onClick={() => unblockAllSlots(date, consoleId)}>
+            <Button
+              variant="secondary"
+              className="rounded-xl h-10"
+              onClick={() => {
+                const fullDay = overrides.filter((o) => !o.startTime);
+                Promise.all(fullDay.map((o) => api.slots.deleteOverride(o._id || o.id))).then(loadData);
+              }}
+            >
               Unblock full day
             </Button>
           </div>
@@ -91,9 +174,7 @@ export const AdminSlotsPage = () => {
                       setBulkSelected((prev) => prev.includes(slot.id) ? prev.filter((id) => id !== slot.id) : [...prev, slot.id]);
                       return;
                     }
-                    if (slot.state !== "booked") {
-                      toggleSlotBlocked(date, consoleId, slot.id);
-                    }
+                    void toggleSingleSlot(slot.start, slot.state);
                   }}
                   onMouseDown={() => {
                     holdTimerRef.current = window.setTimeout(() => {
