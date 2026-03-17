@@ -6,22 +6,14 @@ import {
   CalendarRange,
   Home,
   LayoutGrid,
-  Menu,
   ShoppingBag,
   Trophy,
   Users,
   Lightbulb,
   LogOut,
+  UserCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { useState } from "react";
 
 export const adminLinks = [
   { to: "/admin/overview", label: "Overview", icon: LayoutGrid },
@@ -37,7 +29,7 @@ interface AdminNavContentProps {
   onLinkClick?: () => void;
 }
 
-const AdminNavContent = ({ onLinkClick }: AdminNavContentProps) => {
+export const AdminNavContent = ({ onLinkClick }: AdminNavContentProps) => {
   const location = useLocation();
 
   return (
@@ -69,15 +61,25 @@ export const AdminSidebar = () => {
   const { logout } = useAdmin();
 
   return (
-    <aside className="hidden md:flex md:flex-col border-r border-border/60 bg-sidebar-background/90 backdrop-blur-md md:sticky md:top-0 md:h-screen">
+    <aside className="hidden lg:flex lg:flex-col border-r border-border/60 bg-surface-1/95 backdrop-blur-md sticky top-0 h-screen">
       <div className="h-16 flex items-center px-4 border-b border-border/60">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
             <Home className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <p className="font-heading text-lg">VMOS Admin</p>
-            <p className="text-xs text-muted-foreground">Control center</p>
+            <p className="font-heading text-base">VMOS Admin</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Control Center</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="rounded-2xl border border-border/60 bg-surface-2/70 p-3 flex items-center gap-3">
+          <UserCircle2 className="h-8 w-8 text-primary" />
+          <div>
+            <p className="font-heading text-sm">Admin</p>
+            <p className="text-xs text-muted-foreground">Operations</p>
           </div>
         </div>
       </div>
@@ -85,14 +87,10 @@ export const AdminSidebar = () => {
       <AdminNavContent />
 
       <div className="px-4 mt-auto pb-6 border-t border-border/60 pt-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 rounded-xl"
-          onClick={() => {
-            logout();
-            navigate("/admin/login");
-          }}
-        >
+        <Button variant="ghost" className="w-full justify-start gap-2 rounded-xl" onClick={() => {
+          logout();
+          navigate("/admin/login");
+        }}>
           <LogOut className="h-4 w-4" />
           Logout
         </Button>
@@ -101,47 +99,50 @@ export const AdminSidebar = () => {
   );
 };
 
-export const AdminMobileMenu = () => {
-  const [open, setOpen] = useState(false);
+interface AdminDrawerContentProps {
+  onNavigate?: () => void;
+}
+
+export const AdminDrawerContent = ({ onNavigate }: AdminDrawerContentProps) => {
   const navigate = useNavigate();
   const { logout } = useAdmin();
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="outline" size="icon" className="md:hidden rounded-xl border-border/60 bg-surface-2">
-          <Menu className="h-5 w-5" />
+    <div className="h-full flex flex-col">
+      <div className="h-16 px-4 border-b border-border/60 flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+          <Home className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div>
+          <p className="font-heading">VMOS Admin</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Control Center</p>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="rounded-2xl border border-border/60 bg-surface-2/70 p-3 flex items-center gap-3">
+          <UserCircle2 className="h-8 w-8 text-primary" />
+          <div>
+            <p className="font-heading text-sm">Admin</p>
+            <p className="text-xs text-muted-foreground">Operations</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-1">
+        <AdminNavContent onLinkClick={onNavigate} />
+      </div>
+
+      <div className="px-4 pb-6 mt-auto border-t border-border/60 pt-4">
+        <Button variant="ghost" className="w-full justify-start gap-2" onClick={() => {
+          onNavigate?.();
+          logout();
+          navigate("/admin/login");
+        }}>
+          <LogOut className="h-4 w-4" />
+          Logout
         </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="p-0 w-[88vw] max-w-sm bg-surface-1">
-        <SheetHeader className="h-16 px-4 border-b border-border/60 flex items-center justify-center">
-          <SheetTitle className="flex items-center gap-2 w-full">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-              <Home className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span>VMOS Admin</span>
-          </SheetTitle>
-        </SheetHeader>
-
-        <div className="px-1">
-          <AdminNavContent onLinkClick={() => setOpen(false)} />
-        </div>
-
-        <div className="px-4 pb-6 mt-auto">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2"
-            onClick={() => {
-              setOpen(false);
-              logout();
-              navigate("/admin/login");
-            }}
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
 };
