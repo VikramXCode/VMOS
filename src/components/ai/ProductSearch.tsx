@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generateGeminiText, isGeminiConfigured } from "@/lib/gemini";
+import { generateGeminiText, isGeminiConfigured, isGeminiRateLimitError } from "@/lib/gemini";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -50,7 +50,11 @@ export const ProductSearch = ({ products, onApply }: ProductSearchProps) => {
       onApply(ids.length > 0 ? ids : null);
     } catch (e) {
       console.error(e);
-      setError("AI search failed. Try another phrasing.");
+      if (isGeminiRateLimitError(e)) {
+        setError("AI search is busy right now. Please try again in a few seconds.");
+      } else {
+        setError("AI search failed. Try another phrasing.");
+      }
       onApply(null);
     } finally {
       setLoading(false);
